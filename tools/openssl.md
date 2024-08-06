@@ -58,3 +58,46 @@
 | `openssl rand -base64 -out <file> 32` | Generate a random base64 string and save it to a file |
 | `openssl rand -out <file> 32` | Generate a random binary string and save it to a file |
 | `openssl rand -hex 32` | Generate a random hex string |
+
+
+## Generate Self Signed Certificate
+1. Generate RSA
+Save passphrase
+ ```shell
+openssl genrsa -aes256 -out ca-key.pem 4096
+```
+2. Generate a public CA Cert
+would generate an x509 certificate valid for 3650 days
+```shell
+ openssl req -new -x509 -sha256 -days 3650 -key ca-key.pem -out ca.pem  
+```
+3. Verify certificate information is correct
+```shell
+openssl x509 -in ca.pem -text
+```
+4. Issue certificates for our servers
+Generate private and public keys for the server
+```shell
+openssl genrsa -out cert-key.pem 4096
+```
+5. Create a certificate signing request (CSR)
+```shell
+ openssl req -new -sha256 -subj "/CN=yourcn" -key cert-key.pem -out cert.csr  
+```
+```shell
+ openssl req -new -sha256 -subj "/CN=servername like home-logging" -key cert-key.pem -out cert.csr  
+```
+6. Create extfile with all the alternative names
+```shell
+echo "subjectAltName=DNS:your-dns.record,IP:257.10.10.1" >> extfile.cnf
+echo "subjectAltName=IP:127.0.0.1" >> extfile.cnf      
+```
+7. Create the certificate
+```shell
+openssl x509 -req -sha256 -days 3650 -in cert.csr -CA ca.pem -CAkey ca-key.pem -out cert.pem -extfile extfile.cnf -CAcreateserial
+```
+8. Merge cert.pem and ca.pem into fullchain.pem
+```shell
+cat cert.pem > fullchain.pem
+cat ca.pem >> fullchain.pem
+```
